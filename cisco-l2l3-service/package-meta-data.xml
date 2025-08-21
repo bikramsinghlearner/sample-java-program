@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ncs-package xmlns="http://tail-f.com/ns/ncs-packages">
+  <name>cisco-l2l3-service</name>
+  <package-version>1.0.0</package-version>
+  <description>Cisco L2/L3 Service Package for IOS and IOS XR devices</description>
+  <ncs-min-version>5.7</ncs-min-version>
+  
+  <required-package>
+    <name>cisco-ios-cli-6.77</name>
+  </required-package>
+  
+  <required-package>
+    <name>cisco-iosxr-cli-7.38</name>
+  </required-package>
+  
+  <component>
+    <name>main</name>
+    <application>
+      <python-class-name>cisco_l2l3_service.main.CiscoL2L3ServiceApplication</python-class-name>
+    </application>
+  </component>
+  
+  <templates>
+    <template>
+      <name>cisco-l2l3-service-ios-template</name>
+    </template>
+    <template>
+      <name>cisco-l2l3-service-iosxr-template</name>
+    </template>
+  </templates>
+  
+</ncs-package>

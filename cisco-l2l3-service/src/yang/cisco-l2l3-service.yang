@@ -1,0 +1,299 @@
+module cisco-l2l3-service {
+  namespace "http://example.com/cisco-l2l3-service";
+  prefix cisco-l2l3;
+
+  import ietf-inet-types {
+    prefix inet;
+  }
+  
+  import tailf-common {
+    prefix tailf;
+  }
+  
+  import tailf-ncs {
+    prefix ncs;
+  }
+
+  description
+    "Cisco L2/L3 Service Package for IOS and IOS XR devices";
+
+  revision 2024-01-01 {
+    description
+      "Initial revision";
+  }
+
+  augment /ncs:services {
+    list cisco-l2l3-service {
+      description "Cisco L2/L3 Service Configuration";
+      
+      key "name";
+      leaf name {
+        tailf:info "Unique service instance identifier";
+        tailf:cli-allow-range;
+        type string;
+      }
+
+      uses ncs:service-data;
+      ncs:servicepoint cisco-l2l3-servicepoint;
+
+      leaf device {
+        tailf:info "Target device name";
+        type leafref {
+          path "/ncs:devices/ncs:device/ncs:name";
+        }
+        mandatory true;
+      }
+
+      leaf device-type {
+        tailf:info "Device type (ios or iosxr)";
+        type enumeration {
+          enum "ios" {
+            description "Cisco IOS device";
+          }
+          enum "iosxr" {
+            description "Cisco IOS XR device";
+          }
+        }
+        mandatory true;
+      }
+
+      container l2-config {
+        tailf:info "Layer 2 configuration";
+        presence "Enable L2 configuration";
+        
+        list vlan {
+          tailf:info "VLAN configuration";
+          key "vlan-id";
+          
+          leaf vlan-id {
+            tailf:info "VLAN ID";
+            type uint16 {
+              range "1..4094";
+            }
+          }
+          
+          leaf name {
+            tailf:info "VLAN name";
+            type string;
+          }
+        }
+
+        list interface {
+          tailf:info "Interface configuration";
+          key "name";
+          
+          leaf name {
+            tailf:info "Interface name";
+            type string;
+          }
+          
+          leaf description {
+            tailf:info "Interface description";
+            type string;
+          }
+          
+          leaf switchport-mode {
+            tailf:info "Switchport mode";
+            type enumeration {
+              enum "access";
+              enum "trunk";
+            }
+          }
+          
+          leaf access-vlan {
+            tailf:info "Access VLAN ID";
+            type uint16 {
+              range "1..4094";
+            }
+            when "../switchport-mode = 'access'";
+          }
+          
+          leaf-list trunk-vlans {
+            tailf:info "Trunk allowed VLANs";
+            type uint16 {
+              range "1..4094";
+            }
+            when "../switchport-mode = 'trunk'";
+          }
+        }
+      }
+
+      container l3-config {
+        tailf:info "Layer 3 configuration";
+        presence "Enable L3 configuration";
+        
+        list interface {
+          tailf:info "L3 interface configuration";
+          key "name";
+          
+          leaf name {
+            tailf:info "Interface name";
+            type string;
+          }
+          
+          leaf description {
+            tailf:info "Interface description";
+            type string;
+          }
+          
+          leaf ip-address {
+            tailf:info "IP address";
+            type inet:ipv4-address;
+          }
+          
+          leaf subnet-mask {
+            tailf:info "Subnet mask";
+            type inet:ipv4-address;
+          }
+          
+          leaf ipv6-address {
+            tailf:info "IPv6 address";
+            type inet:ipv6-address;
+          }
+          
+          leaf ipv6-prefix-length {
+            tailf:info "IPv6 prefix length";
+            type uint8 {
+              range "0..128";
+            }
+          }
+          
+          leaf shutdown {
+            tailf:info "Shutdown interface";
+            type boolean;
+            default false;
+          }
+        }
+
+        container routing {
+          tailf:info "Routing configuration";
+          
+          list static-route {
+            tailf:info "Static route configuration";
+            key "destination";
+            
+            leaf destination {
+              tailf:info "Destination network";
+              type inet:ipv4-prefix;
+            }
+            
+            leaf next-hop {
+              tailf:info "Next hop IP address";
+              type inet:ipv4-address;
+            }
+            
+            leaf interface {
+              tailf:info "Exit interface";
+              type string;
+            }
+            
+            leaf administrative-distance {
+              tailf:info "Administrative distance";
+              type uint8 {
+                range "1..255";
+              }
+              default 1;
+            }
+          }
+
+          list static-ipv6-route {
+            tailf:info "Static IPv6 route configuration";
+            key "destination";
+            
+            leaf destination {
+              tailf:info "Destination IPv6 network";
+              type inet:ipv6-prefix;
+            }
+            
+            leaf next-hop {
+              tailf:info "Next hop IPv6 address";
+              type inet:ipv6-address;
+            }
+            
+            leaf interface {
+              tailf:info "Exit interface";
+              type string;
+            }
+            
+            leaf administrative-distance {
+              tailf:info "Administrative distance";
+              type uint8 {
+                range "1..255";
+              }
+              default 1;
+            }
+          }
+
+          container ospf {
+            tailf:info "OSPF configuration";
+            presence "Enable OSPF";
+            
+            leaf process-id {
+              tailf:info "OSPF process ID";
+              type uint16;
+              mandatory true;
+            }
+            
+            leaf router-id {
+              tailf:info "OSPF router ID";
+              type inet:ipv4-address;
+            }
+            
+            list network {
+              tailf:info "OSPF network statement";
+              key "network";
+              
+              leaf network {
+                tailf:info "Network address";
+                type inet:ipv4-prefix;
+              }
+              
+              leaf area {
+                tailf:info "OSPF area";
+                type string;
+                mandatory true;
+              }
+            }
+          }
+
+          container bgp {
+            tailf:info "BGP configuration";
+            presence "Enable BGP";
+            
+            leaf as-number {
+              tailf:info "BGP AS number";
+              type uint32;
+              mandatory true;
+            }
+            
+            leaf router-id {
+              tailf:info "BGP router ID";
+              type inet:ipv4-address;
+            }
+            
+            list neighbor {
+              tailf:info "BGP neighbor";
+              key "ip-address";
+              
+              leaf ip-address {
+                tailf:info "Neighbor IP address";
+                type inet:ipv4-address;
+              }
+              
+              leaf remote-as {
+                tailf:info "Remote AS number";
+                type uint32;
+                mandatory true;
+              }
+              
+              leaf description {
+                tailf:info "Neighbor description";
+                type string;
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

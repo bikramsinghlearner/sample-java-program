@@ -1,0 +1,196 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<config-template xmlns="http://tail-f.com/ns/config/1.0"
+                 servicepoint="cisco-l2l3-servicepoint">
+  
+  <!-- Template for Cisco IOS devices -->
+  <devices xmlns="http://tail-f.com/ns/ncs">
+    <device>
+      <name>{/device}</name>
+      <config>
+        
+        <!-- VLAN Configuration -->
+        <?if {/l2-config}?>
+          <?foreach {/l2-config/vlan}?>
+            <vlan xmlns="urn:ios">
+              <vlan-list>
+                <id>{vlan-id}</id>
+                <?if {name}?>
+                  <name>{name}</name>
+                <?end?>
+              </vlan-list>
+            </vlan>
+          <?end?>
+        <?end?>
+        
+        <!-- Interface Configuration -->
+        <interface xmlns="urn:ios">
+          
+          <!-- L2 Interface Configuration -->
+          <?if {/l2-config}?>
+            <?foreach {/l2-config/interface}?>
+              <GigabitEthernet>
+                <name>{name}</name>
+                <?if {description}?>
+                  <description>{description}</description>
+                <?end?>
+                
+                <?if {switchport-mode}?>
+                  <switchport>
+                    <mode>
+                      <?if {switchport-mode='access'}?>
+                        <access/>
+                      <?end?>
+                      <?if {switchport-mode='trunk'}?>
+                        <trunk/>
+                      <?end?>
+                    </mode>
+                    
+                    <?if {switchport-mode='access' and access-vlan}?>
+                      <access>
+                        <vlan>{access-vlan}</vlan>
+                      </access>
+                    <?end?>
+                    
+                    <?if {switchport-mode='trunk' and trunk-vlans}?>
+                      <trunk>
+                        <allowed>
+                          <vlan><?foreach {trunk-vlans}?>{.}<?if {position()!=last()}?>,<?end?><?end?></vlan>
+                        </allowed>
+                      </trunk>
+                    <?end?>
+                  </switchport>
+                <?end?>
+              </GigabitEthernet>
+            <?end?>
+          <?end?>
+          
+          <!-- L3 Interface Configuration -->
+          <?if {/l3-config}?>
+            <?foreach {/l3-config/interface}?>
+              <GigabitEthernet>
+                <name>{name}</name>
+                <?if {description}?>
+                  <description>{description}</description>
+                <?end?>
+                
+                <?if {ip-address and subnet-mask}?>
+                  <ip>
+                    <address>
+                      <primary>
+                        <address>{ip-address}</address>
+                        <mask>{subnet-mask}</mask>
+                      </primary>
+                    </address>
+                  </ip>
+                <?end?>
+                
+                <?if {ipv6-address and ipv6-prefix-length}?>
+                  <ipv6>
+                    <address>
+                      <prefix-list>
+                        <prefix>{ipv6-address}/{ipv6-prefix-length}</prefix>
+                      </prefix-list>
+                    </address>
+                  </ipv6>
+                <?end?>
+                
+                <?if {shutdown='true'}?>
+                  <shutdown/>
+                <?end?>
+              </GigabitEthernet>
+            <?end?>
+          <?end?>
+          
+        </interface>
+        
+        <!-- Routing Configuration -->
+        <?if {/l3-config/routing}?>
+          
+          <!-- Static Routes -->
+          <?if {/l3-config/routing/static-route}?>
+            <ip xmlns="urn:ios">
+              <route>
+                <?foreach {/l3-config/routing/static-route}?>
+                  <ip-route-forwarding-list>
+                    <prefix>{destination}</prefix>
+                    <forwarding-address>{next-hop}</forwarding-address>
+                    <?if {administrative-distance != 1}?>
+                      <distance>{administrative-distance}</distance>
+                    <?end?>
+                  </ip-route-forwarding-list>
+                <?end?>
+              </route>
+            </ip>
+          <?end?>
+          
+          <!-- IPv6 Static Routes -->
+          <?if {/l3-config/routing/static-ipv6-route}?>
+            <ipv6 xmlns="urn:ios">
+              <route>
+                <?foreach {/l3-config/routing/static-ipv6-route}?>
+                  <ipv6-route-list>
+                    <prefix>{destination}</prefix>
+                    <next-hop>{next-hop}</next-hop>
+                    <?if {administrative-distance != 1}?>
+                      <distance>{administrative-distance}</distance>
+                    <?end?>
+                  </ipv6-route-list>
+                <?end?>
+              </route>
+            </ipv6>
+          <?end?>
+          
+          <!-- OSPF Configuration -->
+          <?if {/l3-config/routing/ospf}?>
+            <router xmlns="urn:ios">
+              <ospf>
+                <id>{/l3-config/routing/ospf/process-id}</id>
+                <?if {/l3-config/routing/ospf/router-id}?>
+                  <router-id>{/l3-config/routing/ospf/router-id}</router-id>
+                <?end?>
+                
+                <?if {/l3-config/routing/ospf/network}?>
+                  <?foreach {/l3-config/routing/ospf/network}?>
+                    <network>
+                      <ip>{network}</ip>
+                      <area>{area}</area>
+                    </network>
+                  <?end?>
+                <?end?>
+              </ospf>
+            </router>
+          <?end?>
+          
+          <!-- BGP Configuration -->
+          <?if {/l3-config/routing/bgp}?>
+            <router xmlns="urn:ios">
+              <bgp>
+                <as-no>{/l3-config/routing/bgp/as-number}</as-no>
+                <?if {/l3-config/routing/bgp/router-id}?>
+                  <bgp>
+                    <router-id>{/l3-config/routing/bgp/router-id}</router-id>
+                  </bgp>
+                <?end?>
+                
+                <?if {/l3-config/routing/bgp/neighbor}?>
+                  <?foreach {/l3-config/routing/bgp/neighbor}?>
+                    <neighbor>
+                      <id>{ip-address}</id>
+                      <remote-as>{remote-as}</remote-as>
+                      <?if {description}?>
+                        <description>{description}</description>
+                      <?end?>
+                    </neighbor>
+                  <?end?>
+                <?end?>
+              </bgp>
+            </router>
+          <?end?>
+          
+        <?end?>
+        
+      </config>
+    </device>
+  </devices>
+  
+</config-template>
