@@ -1,0 +1,232 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<config-template xmlns="http://tail-f.com/ns/config/1.0"
+                 servicepoint="cisco-l2l3-servicepoint">
+  
+  <!-- Template for Cisco IOS XR devices -->
+  <devices xmlns="http://tail-f.com/ns/ncs">
+    <device>
+      <name>{/device}</name>
+      <config>
+        
+        <!-- L2VPN Bridge Domain Configuration -->
+        <?if {/l2-config and /l2-config/vlan}?>
+          <l2vpn xmlns="http://cisco.com/ns/yang/Cisco-IOS-XR-l2vpn-cfg">
+            <bridge>
+              <group>
+                <group-name>default</group-name>
+                <?foreach {/l2-config/vlan}?>
+                  <bridge-domain>
+                    <bridge-domain-name>{vlan-id}</bridge-domain-name>
+                    <?if {name}?>
+                      <description>{name}</description>
+                    <?end?>
+                  </bridge-domain>
+                <?end?>
+              </group>
+            </bridge>
+          </l2vpn>
+        <?end?>
+        
+        <!-- Interface Configuration -->
+        <interface xmlns="http://cisco.com/ns/yang/Cisco-IOS-XR-ifmgr-cfg">
+          
+          <!-- L2 Interface Configuration -->
+          <?if {/l2-config and /l2-config/interface}?>
+            <?foreach {/l2-config/interface}?>
+              <GigabitEthernet>
+                <interface-name>{name}</interface-name>
+                <?if {description}?>
+                  <description>{description}</description>
+                <?end?>
+                
+                <!-- L2 transport configuration would go here -->
+                <l2-transport>
+                </l2-transport>
+              </GigabitEthernet>
+            <?end?>
+          <?end?>
+          
+          <!-- L3 Interface Configuration -->
+          <?if {/l3-config and /l3-config/interface}?>
+            <?foreach {/l3-config/interface}?>
+              <GigabitEthernet>
+                <interface-name>{name}</interface-name>
+                <?if {description}?>
+                  <description>{description}</description>
+                <?end?>
+                
+                <?if {ip-address and subnet-mask}?>
+                  <ipv4>
+                    <addresses>
+                      <address>
+                        <address>{ip-address}</address>
+                        <netmask>{subnet-mask}</netmask>
+                      </address>
+                    </addresses>
+                  </ipv4>
+                <?end?>
+                
+                <?if {ipv6-address and ipv6-prefix-length}?>
+                  <ipv6>
+                    <addresses>
+                      <address>
+                        <address>{ipv6-address}</address>
+                        <prefix-length>{ipv6-prefix-length}</prefix-length>
+                      </address>
+                    </addresses>
+                  </ipv6>
+                <?end?>
+                
+                <?if {shutdown='true'}?>
+                  <shutdown/>
+                <?end?>
+              </GigabitEthernet>
+            <?end?>
+          <?end?>
+          
+        </interface>
+        
+        <!-- Routing Configuration -->
+        <?if {/l3-config/routing}?>
+          <router xmlns="http://cisco.com/ns/yang/Cisco-IOS-XR-router-cfg">
+            
+            <!-- Static Routes -->
+            <?if {/l3-config/routing/static-route or /l3-config/routing/static-ipv6-route}?>
+              <static>
+                <default-vrf>
+                  <address-family>
+                    
+                    <!-- IPv4 Static Routes -->
+                    <?if {/l3-config/routing/static-route}?>
+                      <ipv4>
+                        <unicast>
+                          <?foreach {/l3-config/routing/static-route}?>
+                            <topology>
+                              <topology-name>default</topology-name>
+                              <route>
+                                <prefix>{destination}</prefix>
+                                <route-next-hop>
+                                  <next-hop-address>
+                                    <next-hop-address>{next-hop}</next-hop-address>
+                                    <?if {administrative-distance != 1}?>
+                                      <metric>{administrative-distance}</metric>
+                                    <?end?>
+                                  </next-hop-address>
+                                </route-next-hop>
+                              </route>
+                            </topology>
+                          <?end?>
+                        </unicast>
+                      </ipv4>
+                    <?end?>
+                    
+                    <!-- IPv6 Static Routes -->
+                    <?if {/l3-config/routing/static-ipv6-route}?>
+                      <ipv6>
+                        <unicast>
+                          <?foreach {/l3-config/routing/static-ipv6-route}?>
+                            <topology>
+                              <topology-name>default</topology-name>
+                              <route>
+                                <prefix>{destination}</prefix>
+                                <route-next-hop>
+                                  <next-hop-address>
+                                    <next-hop-address>{next-hop}</next-hop-address>
+                                    <?if {administrative-distance != 1}?>
+                                      <metric>{administrative-distance}</metric>
+                                    <?end?>
+                                  </next-hop-address>
+                                </route-next-hop>
+                              </route>
+                            </topology>
+                          <?end?>
+                        </unicast>
+                      </ipv6>
+                    <?end?>
+                    
+                  </address-family>
+                </default-vrf>
+              </static>
+            <?end?>
+            
+            <!-- OSPF Configuration -->
+            <?if {/l3-config/routing/ospf}?>
+              <ospf>
+                <processes>
+                  <process>
+                    <process-name>{/l3-config/routing/ospf/process-id}</process-name>
+                    <?if {/l3-config/routing/ospf/router-id}?>
+                      <router-id>{/l3-config/routing/ospf/router-id}</router-id>
+                    <?end?>
+                    
+                    <default-vrf>
+                      <?if {/l3-config/routing/ospf/network}?>
+                        <?foreach {/l3-config/routing/ospf/network}?>
+                          <area-addresses>
+                            <area-address>{area}</area-address>
+                            <area>
+                              <interface>
+                                <interface-name>{network}</interface-name>
+                              </interface>
+                            </area>
+                          </area-addresses>
+                        <?end?>
+                      <?end?>
+                    </default-vrf>
+                  </process>
+                </processes>
+              </ospf>
+            <?end?>
+            
+            <!-- BGP Configuration -->
+            <?if {/l3-config/routing/bgp}?>
+              <bgp>
+                <instance>
+                  <instance-name>default</instance-name>
+                  <instance-as>
+                    <as>0</as>
+                    <four-byte-as>
+                      <as>{/l3-config/routing/bgp/as-number}</as>
+                      <bgp-running>
+                      </bgp-running>
+                      
+                      <default-vrf>
+                        <global>
+                          <?if {/l3-config/routing/bgp/router-id}?>
+                            <router-id>{/l3-config/routing/bgp/router-id}</router-id>
+                          <?end?>
+                        </global>
+                        
+                        <bgp-entity>
+                          <?if {/l3-config/routing/bgp/neighbor}?>
+                            <?foreach {/l3-config/routing/bgp/neighbor}?>
+                              <neighbors>
+                                <neighbor>
+                                  <neighbor-address>{ip-address}</neighbor-address>
+                                  <remote-as>
+                                    <as-xx>0</as-xx>
+                                    <as-yy>{remote-as}</as-yy>
+                                  </remote-as>
+                                  <?if {description}?>
+                                    <description>{description}</description>
+                                  <?end?>
+                                </neighbor>
+                              </neighbors>
+                            <?end?>
+                          <?end?>
+                        </bgp-entity>
+                      </default-vrf>
+                    </four-byte-as>
+                  </instance-as>
+                </instance>
+              </bgp>
+            <?end?>
+            
+          </router>
+        <?end?>
+        
+      </config>
+    </device>
+  </devices>
+  
+</config-template>
